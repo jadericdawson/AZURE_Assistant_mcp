@@ -1,0 +1,92 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Build and deploy Python app to Azure Web App - wbi-deepseekr1-v3
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 🛠️ Local Build Section (Optional)
+      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
+      - name: Create and Start virtual environment and Install dependencies
+        run: |
+          python -m venv antenv
+          source antenv/bin/activate
+          pip install -r requirements.txt
+                
+      # Exclude virtual environment - let Azure's Oryx build it with compatible libraries
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            .
+            !antenv/
+            !venv/
+            !__pycache__/
+            !*.pyc
+
+      # 🚫 Opting Out of Oryx Build
+      # If you prefer to disable the Oryx build process during deployment, follow these steps:
+      # 1. Remove the SCM_DO_BUILD_DURING_DEPLOYMENT app setting from your Azure App Service Environment variables.
+      # 2. Refer to sample workflows for alternative deployment strategies: https://github.com/Azure/actions-workflow-samples/tree/master/AppService
+      
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9F811178133147F89F8AD0897BA628F3 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7E7736B6F4C04E759C66A72DB653A35C }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B572464F3BD4465CA030980A1B4E5112 }}
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'wbi-deepseekr1-v3'
+          slot-name: 'Production'
+          startup-command: 'python -m streamlit run app_mcp.py --server.port=8000 --server.address=0.0.0.0 --server.headless=true'
+
+      # Post-deployment configuration
+      - name: 'Configure App Settings'
+        run: |
+          echo "Deployment complete. Ensure the following environment variables are set in Azure Portal:"
+          echo "  - COSMOS_ENDPOINT"
+          echo "  - COSMOS_KEY"
+          echo "  - AZURE_AI_SEARCH_ENDPOINT"
+          echo "  - GPT41_DEPLOYMENT"
+          echo "  - O3_DEPLOYMENT_NAME"
+          echo "  - AZURE_STORAGE_CONNECTION_STRING"
+          echo "  - ENVIRONMENT=production"
+          echo "  - SKIP_STARTUP_VERIFICATION=true (recommended for faster startup)"
