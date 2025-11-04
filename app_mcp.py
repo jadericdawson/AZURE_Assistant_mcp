@@ -9662,6 +9662,11 @@ You have access to all scratchpad tools for reading and writing."""
                     call_type="agent"
                 )
                 agent_output = json.loads(response.choices[0].message.content)
+                # Ensure agent_output is a dict, not a list
+                if not isinstance(agent_output, dict):
+                    agent_output = {
+                        "response": f"Agent returned invalid format (expected dict, got {type(agent_output).__name__}): {str(agent_output)[:200]}"
+                    }
                 result["agent_output"] = agent_output
                 break
             except RuntimeError as e:
@@ -10736,6 +10741,11 @@ You have access to all scratchpad tools for reading and writing."""
                                     call_type="agent"
                                 )
                                 agent_output = json.loads(response.choices[0].message.content)
+                                # Ensure agent_output is a dict, not a list
+                                if not isinstance(agent_output, dict):
+                                    agent_output = {
+                                        "response": f"Agent returned invalid format (expected dict, got {type(agent_output).__name__}): {str(agent_output)[:200]}"
+                                    }
                                 break  # Success
                             except RuntimeError as e:
                                 if "CONTEXT_LIMIT_EXCEEDED" in str(e) and retry_attempt < max_retries - 1:
@@ -10800,6 +10810,11 @@ You have access to all scratchpad tools for reading and writing."""
                                             call_type="tool_agent"
                                         )
                                         agent_output = json.loads(response.choices[0].message.content)
+                                        # Ensure agent_output is a dict, not a list
+                                        if not isinstance(agent_output, dict):
+                                            agent_output = {
+                                                "response": f"Tool Agent returned invalid format (expected dict, got {type(agent_output).__name__}): {str(agent_output)[:200]}"
+                                            }
                                         break
                                     except RuntimeError as e:
                                         if "CONTEXT_LIMIT_EXCEEDED" in str(e) and retry_attempt < max_retries - 1:
