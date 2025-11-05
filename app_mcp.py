@@ -9699,11 +9699,14 @@ You have access to all scratchpad tools."""
             if isinstance(tool, dict):
                 result["tool_call"] = (tool.get("name"), tool.get("params", {}))
             elif isinstance(tool, list) and len(tool) > 0:
-                # If list, take first tool
-                first_tool = tool[0] if isinstance(tool[0], dict) else {}
-                result["tool_call"] = (first_tool.get("name"), first_tool.get("params", {}))
+                # If list, take first tool (ensure it's a dict)
+                first_tool = tool[0]
+                if isinstance(first_tool, dict):
+                    result["tool_call"] = (first_tool.get("name"), first_tool.get("params", {}))
+                else:
+                    result["error"] = f"Invalid tool_use list item format: expected dict, got {type(first_tool).__name__}"
             else:
-                result["error"] = f"Invalid tool_use format: {type(tool)}"
+                result["error"] = f"Invalid tool_use format: {type(tool).__name__}"
         elif "response" in agent_output:
             result["observation"] = agent_output["response"]
 
